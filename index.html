@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <title>快捷导航</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        :root {
+            --bg: #2a2a32;
+            --fg: #e6e6e6;
+            --muted: #a3adba;
+            --card: #5b9bd5;
+            --card-hover: #7ab4e8;
+            --accent: #4f8cff;
+            --shadow: 0 10px 30px rgba(0, 0, 0, .25);
+            --radius: 18px;
+            --card-scale: 1;
+            --card-min-width: 160px;
+            --card-row-height: 120px;
+            --card-favicon-size: 32px;
+            --card-title-size: 14px;
+            --card-host-size: 11px;
+            --card-gap: 16px;
+            --grid-padding: 50px 18px 80px;
+        }
+
+        [data-theme="light"] {
+            --bg: #F1F1ED;
+            --fg: #1a1d24;
+            --muted: #4d5561;
+            --card: #5b9bd5;
+            --card-hover: #4a8bc5;
+            --accent: #84CC16;
+            --shadow: 0 12px 28px rgba(0, 0, 0, .08);
+        }
+
+        html, body { height: 100%; }
+
+        body {
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans",
+                "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg) fixed center/cover no-repeat;
+            color: var(--fg);
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 14px;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: contain;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 18px 22px;
+            flex-wrap: wrap;
+        }
+
+        header h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+
+        .spacer { flex: 1; }
+
+        .toolbar {
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            appearance: none;
+            border: 0;
+            border-radius: 12px;
+            padding: 10px 14px;
+            cursor: pointer;
+            background: var(--card);
+            color: #fff;
+            box-shadow: var(--shadow);
+            font-weight: 500;
+            transition: background .2s, filter .2s, transform .1s;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .btn:hover { filter: brightness(1.08); }
+        .btn:active { transform: scale(0.95); }
+
+        .btn.primary { background: var(--accent); color: white; }
+        .btn.primary:hover { filter: brightness(1.05); }
+
+        .size-controls {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(127, 127, 127, .15);
+            border-radius: 12px;
+            padding: 4px;
+        }
+
+        .size-btn {
+            appearance: none;
+            border: 0;
+            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--fg);
+            font-size: 16px;
+            font-weight: 600;
+            display: grid;
+            place-items: center;
+            transition: background .15s, transform .1s;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .size-btn:hover { background: rgba(127, 127, 127, .2); }
+        .size-btn:active { transform: scale(0.9); }
+        .size-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .switch {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+            position: relative;
+        }
+
+        .switch input {
+            appearance: none;
+            width: 46px;
+            height: 26px;
+            border-radius: 999px;
+            background: rgba(127, 127, 127, .35);
+            position: relative;
+            outline: none;
+            cursor: pointer;
+            transition: background .2s;
+            flex-shrink: 0;
+        }
+
+        .switch input::after {
+            content: "";
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            top: 3px;
+            left: 3px;
+            border-radius: 999px;
+            background: #fff;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+            transition: transform .2s;
+        }
+
+        .switch input:checked { background: var(--accent); }
+        .switch input:checked::after { transform: translateX(20px); }
+
+        .switch-label-text {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--fg);
+            padding: 4px 8px;
+            border-radius: 8px;
+            transition: background .15s;
+        }
+
+        .switch-label-text:hover { background: rgba(127, 127, 127, .12); }
+
+        .color-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid rgba(127, 127, 127, .35);
+            flex-shrink: 0;
+            transition: transform .15s;
+            box-sizing: border-box;
+        }
+
+        .switch-label-text:hover .color-dot { transform: scale(1.15); }
+
+        .color-picker-popup {
+            position: fixed;
+            z-index: 1000;
+            background: var(--bg);
+            border: 1px solid rgba(127, 127, 127, .25);
+            border-radius: 14px;
+            padding: 12px 14px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, .35);
+            display: none;
+            min-width: 220px;
+        }
+
+        .color-picker-popup.show { display: block; }
+
+        .color-picker-popup .preset-colors {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .color-picker-popup .preset-color-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform .12s, border-color .12s, box-shadow .12s;
+            outline: none;
+            padding: 0;
+            flex-shrink: 0;
+        }
+
+        .color-picker-popup .preset-color-btn:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, .3);
+            border-color: rgba(255, 255, 255, .6);
+        }
+
+        .color-picker-popup .preset-color-btn.active {
+            border-color: #fff;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, .35);
+            transform: scale(1.1);
+        }
+
+        .color-picker-popup .popup-label {
+            font-size: 11px;
+            color: var(--muted);
+            text-align: center;
+            margin-bottom: 10px;
+            letter-spacing: .3px;
+        }
+
+        .grid {
+            padding: var(--grid-padding);
+            width: min(1300px, 100%);
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(var(--card-min-width), 1fr));
+            gap: var(--card-gap);
+            align-items: stretch;
+            grid-auto-rows: var(--card-row-height);
+        }
+
+        .tile {
+            user-select: none;
+            -webkit-user-select: none;
+            background: var(--card);
+            border-radius: calc(var(--radius) * var(--card-scale));
+            padding: calc(4px * var(--card-scale));
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: calc(2px * var(--card-scale));
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+            outline: 2px solid transparent;
+            transition: transform .15s ease, outline-color .2s ease, background .2s ease, box-shadow .2s ease;
+            box-sizing: border-box;
+            height: 100%;
+            margin: 0;
+            cursor: grab;
+            text-decoration: none;
+            touch-action: pan-y;
+            -webkit-touch-callout: none;
+        }
+
+        .tile.sorting {
+            touch-action: none;
+            cursor: grabbing;
+        }
+
+        .tile:hover {
+            background: var(--card-hover);
+            transform: translateY(calc(-2px * var(--card-scale)));
+        }
+
+        .tile.long-press-ready {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 3px var(--accent), var(--shadow);
+        }
+
+        .tile.sorting { cursor: grabbing; }
+
+        .tile:active { transform: translateY(0); }
+
+        .tile.sortable-ghost { opacity: 0.3; background: var(--card-hover); transform: scale(0.92); }
+        .tile.sortable-drag { opacity: 0.9; transform: scale(1.05); box-shadow: 0 20px 40px rgba(0,0,0,.4); }
+
+        .favicon {
+            width: var(--card-favicon-size);
+            height: var(--card-favicon-size);
+            border-radius: calc(6px * var(--card-scale));
+            display: inline-grid;
+            place-items: center;
+            margin-left: calc(8px * var(--card-scale));
+            margin-top: calc(8px * var(--card-scale));
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .favicon img {
+            width: 100%;
+            height: 100%;
+            border-radius: calc(6px * var(--card-scale));
+            object-fit: contain;
+            display: block;
+            pointer-events: none;
+        }
+
+        .title {
+            font-weight: 600;
+            font-size: var(--card-title-size);
+            line-height: 1.2;
+            text-align: left;
+            margin-left: calc(8px * var(--card-scale));
+            margin-top: calc(1px * var(--card-scale));
+            margin-bottom: calc(4px * var(--card-scale));
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #fff;
+            pointer-events: none;
+        }
+
+        .host {
+            color: rgba(255, 255, 255, .75);
+            font-size: var(--card-host-size);
+            margin-left: calc(8px * var(--card-scale));
+            margin-top: calc(4px * var(--card-scale));
+            margin-bottom: calc(5px * var(--card-scale));
+            overflow: hidden;
+            text-overflow: ellipsis;
+            pointer-events: none;
+        }
+
+        .tile .actions {
+            position: absolute;
+            right: calc(8px * var(--card-scale));
+            top: calc(8px * var(--card-scale));
+            display: flex;
+            gap: calc(6px * var(--card-scale));
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .15s;
+        }
+
+        .tile.actions-visible .actions {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .iconbtn {
+            width: calc(30px * var(--card-scale));
+            height: calc(30px * var(--card-scale));
+            border-radius: calc(10px * var(--card-scale));
+            border: 0;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            background: rgba(255, 255, 255, .2);
+            color: #fff;
+            font-size: calc(14px * var(--card-scale));
+            touch-action: manipulation;
+        }
+
+        .iconbtn:hover { background: rgba(255, 255, 255, .35); }
+
+        .icon { width: calc(18px * var(--card-scale)); height: calc(18px * var(--card-scale)); display: inline-block; pointer-events: none; }
+
+        .fab {
+            position: fixed;
+            right: 22px;
+            bottom: 22px;
+            z-index: 20;
+            border-radius: 18px;
+            padding: 14px 16px;
+            font-weight: 600;
+        }
+
+        dialog {
+            border: 0;
+            border-radius: 16px;
+            background: var(--card);
+            color: #fff;
+            padding: 0;
+            box-shadow: var(--shadow);
+            width: min(520px, 92vw);
+        }
+
+        dialog::backdrop { background: rgba(0, 0, 0, .45); }
+
+        .dlg-head {
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, .2);
+            color: #fff;
+        }
+
+        .dlg-body { padding: 18px 20px; display: grid; gap: 12px; }
+
+        .dlg-foot {
+            padding: 14px 20px 18px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            border-top: 1px solid rgba(255, 255, 255, .2);
+        }
+
+        label { font-size: 12px; color: rgba(255, 255, 255, .75); }
+
+        input[type="text"],
+        input[type="url"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .25);
+            background: rgba(0, 0, 0, .2);
+            color: #fff;
+            font-size: 14px;
+        }
+
+        input[type="text"]::placeholder,
+        input[type="url"]::placeholder { color: rgba(255, 255, 255, .4); }
+
+        .row { display: grid; gap: 8px; }
+
+        .empty { opacity: .6; text-align: center; padding: 40px 20px; font-size: 14px; }
+
+        @media (hover: none) and (pointer: coarse) {
+            .tile:hover {
+                transform: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>快捷导航</h1>
+        <div class="spacer"></div>
+        <div class="toolbar">
+            <div class="size-controls" title="调节卡片大小">
+                <button class="size-btn" id="btnSizeDown" title="缩小卡片">A−</button>
+                <button class="size-btn" id="btnSizeReset" title="重置大小" style="font-size:13px;">A</button>
+                <button class="size-btn" id="btnSizeUp" title="放大卡片">A+</button>
+            </div>
+            <label class="switch" title="切换浅色/深色模式" id="switchContainer">
+                <input id="themeToggle" type="checkbox" />
+                <span class="switch-label-text" id="colorTrigger" title="点击调节卡片颜色">
+                    <span class="color-dot" id="colorDot"></span>
+                    <span id="themeLabel">浅色模式</span>
+                </span>
+                <div class="color-picker-popup" id="colorPickerPopup">
+                    <div class="popup-label">选择卡片颜色</div>
+                    <div class="preset-colors" id="presetColors"></div>
+                </div>
+            </label>
+            <button class="btn" id="btnExport" title="导出为JSON备份">导出备份</button>
+            <button class="btn" id="btnImport" title="从JSON恢复">导入恢复</button>
+            <input id="fileImport" type="file" accept="application/json" hidden />
+        </div>
+    </header>
+
+    <main class="grid" id="grid"></main>
+    <button class="btn primary fab" id="btnAdd">＋ 添加快捷站点</button>
+
+    <dialog id="dlg">
+        <div class="dlg-head"><strong id="dlgTitle">添加快捷站点</strong><div class="spacer"></div></div>
+        <div class="dlg-body">
+            <div class="row"><label for="fUrl">网址</label><input id="fUrl" type="url" placeholder="https://example.com" required /></div>
+            <div class="row"><label for="fTitle">标题（可选）</label><input id="fTitle" type="text" placeholder="显示在卡片上" /></div>
+            <div class="row"><label for="fIcon">图标网址（可选）</label><input id="fIcon" type="url" placeholder="https://site.com/favicon.ico" /></div>
+        </div>
+        <div class="dlg-foot">
+            <button class="btn" id="dlgCancel" type="button">取消</button>
+            <button class="btn primary" id="dlgSave" type="button">保存</button>
+        </div>
+    </dialog>
+
+    <script>
+        /* Sortable Lite - 移动端优化：滚动/点击/长按拖拽三态分离 */
+        (function(global) {
+            'use strict';
+
+            var STATE_IDLE = 'idle';
+            var STATE_PENDING = 'pending';
+            var STATE_SCROLLING = 'scrolling';
+            var STATE_DRAGGING = 'dragging';
+
+            var LONG_PRESS_DELAY = 500;
+            var MOVE_THRESHOLD = 10;
+            var SCROLL_SLOP = 8;
+            var DRAG_THRESHOLD_PC = 6;
+
+            function isInteractiveElement(target) {
+                return Boolean(target.closest('button, input, select, textarea, label, a[href]'));
+            }
+
+            function getDragHandle(container, target, handleSelector) {
+                if (!target || !container.contains(target)) return null;
+                if (!handleSelector) return target.closest(':scope > *');
+                var handle = target.closest(handleSelector);
+                if (!handle || handle.parentElement !== container) return null;
+                return handle;
+            }
+
+            function SortableLite(container, options) {
+                this.container = container;
+                this.options = options || {};
+                this.state = STATE_IDLE;
+                this.dragged = null;
+                this.dragPlaceholder = null;
+                this.pendingItem = null;
+                this.longPressTimer = null;
+                this.startX = 0;
+                this.startY = 0;
+                this.lastX = 0;
+                this.lastY = 0;
+                this.offsetX = 0;
+                this.offsetY = 0;
+                this.oldIndex = -1;
+                this.suppressClick = false;
+                this.touchId = null;
+
+                this.touchMoveActiveOptions = { capture: true, passive: false };
+                this.touchMovePassiveOptions = { capture: true, passive: true };
+
+                this.onMouseDown = this.onMouseDown.bind(this);
+                this.onMouseMove = this.onMouseMove.bind(this);
+                this.onMouseUp = this.onMouseUp.bind(this);
+                this.onTouchStart = this.onTouchStart.bind(this);
+                this.onTouchMovePassive = this.onTouchMovePassive.bind(this);
+                this.onTouchMoveActive = this.onTouchMoveActive.bind(this);
+                this.onTouchEnd = this.onTouchEnd.bind(this);
+                this.onClickCapture = this.onClickCapture.bind(this);
+
+                container.addEventListener('mousedown', this.onMouseDown);
+                container.addEventListener('touchstart', this.onTouchStart, { passive: true });
+                container.addEventListener('click', this.onClickCapture, true);
+            }
+
+            SortableLite.prototype.items = function() {
+                return Array.from(this.container.children);
+            };
+
+            SortableLite.prototype.cleanupTouchListeners = function() {
+                document.removeEventListener('touchmove', this.onTouchMovePassive, this.touchMovePassiveOptions);
+                document.removeEventListener('touchmove', this.onTouchMoveActive, this.touchMoveActiveOptions);
+                document.removeEventListener('touchend', this.onTouchEnd, true);
+                document.removeEventListener('touchcancel', this.onTouchEnd, true);
+            };
+
+            SortableLite.prototype.clearLongPressTimer = function() {
+                if (this.longPressTimer) {
+                    clearTimeout(this.longPressTimer);
+                    this.longPressTimer = null;
+                }
+            };
+
+            SortableLite.prototype.resetPending = function() {
+                this.clearLongPressTimer();
+                if (this.pendingItem) {
+                    this.pendingItem.classList.remove('long-press-ready');
+                    this.pendingItem = null;
+                }
+                if (this.options.onLongPressHint) {
+                    this.options.onLongPressHint(false);
+                }
+            };
+
+            SortableLite.prototype.onMouseDown = function(event) {
+                if (event.button !== 0) return;
+                var item = getDragHandle(this.container, event.target, this.options.handle);
+                if (!item || isInteractiveElement(event.target)) return;
+
+                this.state = STATE_PENDING;
+                this.pendingItem = item;
+                this.startX = event.clientX;
+                this.startY = event.clientY;
+                this.lastX = event.clientX;
+                this.lastY = event.clientY;
+                this.suppressClick = false;
+
+                document.addEventListener('mousemove', this.onMouseMove, true);
+                document.addEventListener('mouseup', this.onMouseUp, true);
+            };
+
+            SortableLite.prototype.onTouchStart = function(event) {
+                if (event.touches.length !== 1) {
+                    this.resetPending();
+                    this.state = STATE_IDLE;
+                    return;
+                }
+                var touch = event.touches[0];
+                var item = getDragHandle(this.container, event.target, this.options.handle);
+                if (!item || isInteractiveElement(event.target)) return;
+
+                this.touchId = touch.identifier;
+                this.state = STATE_PENDING;
+                this.pendingItem = item;
+                this.startX = touch.clientX;
+                this.startY = touch.clientY;
+                this.lastX = touch.clientX;
+                this.lastY = touch.clientY;
+                this.suppressClick = false;
+
+                item.classList.add('long-press-ready');
+                if (this.options.onLongPressHint) {
+                    this.options.onLongPressHint(true);
+                }
+
+                var self = this;
+                this.longPressTimer = setTimeout(function() {
+                    if (self.state === STATE_PENDING && self.pendingItem === item) {
+                        self.enterDragMode(item, self.startX, self.startY, true);
+                    }
+                }, LONG_PRESS_DELAY);
+
+                document.addEventListener('touchmove', this.onTouchMovePassive, this.touchMovePassiveOptions);
+                document.addEventListener('touchend', this.onTouchEnd, true);
+                document.addEventListener('touchcancel', this.onTouchEnd, true);
+            };
+
+            SortableLite.prototype.onTouchMovePassive = function(event) {
+                if (this.state !== STATE_PENDING) return;
+                var touch = this.findTouch(event);
+                if (!touch) return;
+
+                var dx = touch.clientX - this.startX;
+                var dy = touch.clientY - this.startY;
+                var absDx = Math.abs(dx);
+                var absDy = Math.abs(dy);
+                var dist = Math.hypot(dx, dy);
+
+                if (dist < 8) return;
+
+                if (absDy > absDx * 1.5 && absDy > SCROLL_SLOP) {
+                    this.state = STATE_SCROLLING;
+                    this.resetPending();
+                    this.cleanupTouchListeners();
+                    return;
+                }
+
+                if (dist > MOVE_THRESHOLD * 2) {
+                    this.resetPending();
+                    this.state = STATE_IDLE;
+                    this.cleanupTouchListeners();
+                }
+            };
+
+            SortableLite.prototype.findTouch = function(event) {
+                for (var i = 0; i < event.touches.length; i++) {
+                    if (event.touches[i].identifier === this.touchId) {
+                        return event.touches[i];
+                    }
+                }
+                return event.touches[0] || null;
+            };
+
+            SortableLite.prototype.onMouseMove = function(event) {
+                if (this.state === STATE_IDLE || this.state === STATE_SCROLLING) return;
+
+                var x = event.clientX;
+                var y = event.clientY;
+
+                if (this.state === STATE_PENDING) {
+                    var dist = Math.hypot(x - this.startX, y - this.startY);
+                    if (dist < DRAG_THRESHOLD_PC) return;
+                    this.enterDragMode(this.pendingItem, this.startX, this.startY, false);
+                }
+
+                if (this.state === STATE_DRAGGING) {
+                    this.lastX = x;
+                    this.lastY = y;
+                    this.positionDraggedItem(x, y);
+                    this.movePlaceholder(x, y);
+                }
+            };
+
+            SortableLite.prototype.onTouchMoveActive = function(event) {
+                if (this.state !== STATE_DRAGGING) return;
+                var touch = this.findTouch(event);
+                if (!touch) return;
+
+                if (event.cancelable) {
+                    event.preventDefault();
+                }
+                this.lastX = touch.clientX;
+                this.lastY = touch.clientY;
+                this.positionDraggedItem(touch.clientX, touch.clientY);
+                this.movePlaceholder(touch.clientX, touch.clientY);
+            };
+
+            SortableLite.prototype.enterDragMode = function(item, x, y, isTouch) {
+                this.state = STATE_DRAGGING;
+                this.clearLongPressTimer();
+
+                item.classList.remove('long-press-ready');
+                item.classList.add('sorting');
+                if (this.options.onLongPressHint) {
+                    this.options.onLongPressHint(false);
+                }
+                if (isTouch && navigator.vibrate) {
+                    navigator.vibrate(25);
+                }
+                if (this.options.onSortStart) {
+                    this.options.onSortStart(item);
+                }
+
+                var rect = item.getBoundingClientRect();
+                var placeholder = item.cloneNode(true);
+                placeholder.classList.add(this.options.ghostClass || 'sortable-ghost');
+                placeholder.style.pointerEvents = 'none';
+                placeholder.setAttribute('aria-hidden', 'true');
+
+                this.dragged = item;
+                this.dragPlaceholder = placeholder;
+                this.oldIndex = this.items().indexOf(item);
+                this.offsetX = x - rect.left;
+                this.offsetY = y - rect.top;
+                this.suppressClick = true;
+
+                item.parentNode.replaceChild(placeholder, item);
+                item.classList.add(this.options.dragClass || 'sortable-drag');
+                item.style.width = rect.width + 'px';
+                item.style.height = rect.height + 'px';
+                item.style.position = 'fixed';
+                item.style.left = '0';
+                item.style.top = '0';
+                item.style.margin = '0';
+                item.style.zIndex = '1000';
+                item.style.pointerEvents = 'none';
+                item.style.boxSizing = 'border-box';
+                item.style.transition = 'none';
+                document.body.appendChild(item);
+
+                this.positionDraggedItem(x, y);
+
+                if (isTouch) {
+                    document.removeEventListener('touchmove', this.onTouchMovePassive, this.touchMovePassiveOptions);
+                    document.addEventListener('touchmove', this.onTouchMoveActive, this.touchMoveActiveOptions);
+                }
+            };
+
+            SortableLite.prototype.positionDraggedItem = function(x, y) {
+                if (!this.dragged) return;
+                this.dragged.style.transform = 'translate(' + (x - this.offsetX) + 'px, ' + (y - this.offsetY) + 'px)';
+            };
+
+            SortableLite.prototype.movePlaceholder = function(x, y) {
+                if (!this.dragPlaceholder) return;
+                var siblings = this.items().filter(function(item) {
+                    return item !== this.dragPlaceholder;
+                }, this);
+                for (var i = 0; i < siblings.length; i += 1) {
+                    var sibling = siblings[i];
+                    var rect = sibling.getBoundingClientRect();
+                    var beforeByRow = y < rect.top + rect.height / 2;
+                    var withinRow = y >= rect.top && y <= rect.bottom;
+                    var beforeByColumn = withinRow && x < rect.left + rect.width / 2;
+                    if (beforeByRow || beforeByColumn) {
+                        if (this.dragPlaceholder !== sibling.previousElementSibling) {
+                            this.container.insertBefore(this.dragPlaceholder, sibling);
+                        }
+                        return;
+                    }
+                }
+                this.container.appendChild(this.dragPlaceholder);
+            };
+
+            SortableLite.prototype.onMouseUp = function() {
+                document.removeEventListener('mousemove', this.onMouseMove, true);
+                document.removeEventListener('mouseup', this.onMouseUp, true);
+                this.finishInteraction();
+            };
+
+            SortableLite.prototype.onTouchEnd = function() {
+                this.cleanupTouchListeners();
+                this.finishInteraction();
+            };
+
+            SortableLite.prototype.finishInteraction = function() {
+                var wasDragging = this.state === STATE_DRAGGING;
+
+                if (wasDragging && this.dragged && this.dragPlaceholder) {
+                    var dragged = this.dragged;
+                    var placeholder = this.dragPlaceholder;
+                    var newIndex = this.items().indexOf(placeholder);
+
+                    dragged.classList.remove(this.options.dragClass || 'sortable-drag', 'sorting', 'long-press-ready');
+                    dragged.style.width = '';
+                    dragged.style.height = '';
+                    dragged.style.position = '';
+                    dragged.style.left = '';
+                    dragged.style.top = '';
+                    dragged.style.margin = '';
+                    dragged.style.zIndex = '';
+                    dragged.style.pointerEvents = '';
+                    dragged.style.boxSizing = '';
+                    dragged.style.transition = '';
+                    dragged.style.transform = '';
+                    this.container.replaceChild(dragged, placeholder);
+
+                    this.dragged = null;
+                    this.dragPlaceholder = null;
+
+                    if (typeof this.options.onEnd === 'function') {
+                        this.options.onEnd({
+                            item: dragged,
+                            oldIndex: this.oldIndex,
+                            newIndex: newIndex
+                        });
+                    }
+                }
+
+                this.resetPending();
+                this.state = STATE_IDLE;
+                this.pendingItem = null;
+                this.touchId = null;
+            };
+
+            SortableLite.prototype.onClickCapture = function(event) {
+                if (!this.suppressClick) return;
+                if (this.container.contains(event.target)) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                this.suppressClick = false;
+            };
+
+            SortableLite.prototype.destroy = function() {
+                this.clearLongPressTimer();
+                this.cleanupTouchListeners();
+                document.removeEventListener('mousemove', this.onMouseMove, true);
+                document.removeEventListener('mouseup', this.onMouseUp, true);
+                this.container.removeEventListener('mousedown', this.onMouseDown);
+                this.container.removeEventListener('touchstart', this.onTouchStart, { passive: true });
+                this.container.removeEventListener('click', this.onClickCapture, true);
+                if (this.pendingItem) {
+                    this.pendingItem.classList.remove('long-press-ready', 'sorting');
+                }
+            };
+
+            global.Sortable = {
+                create: function(container, options) {
+                    return new SortableLite(container, options);
+                }
+            };
+        })(window);
+    </script>
+
+    <script>
+        (function() {
+            'use strict';
+            const LS_KEY = 'quickdial.v3.items';
+            const LS_THEME = 'quickdial.theme';
+            const LS_CARD_COLOR = 'quickdial.cardColor';
+            const LS_CARD_SCALE = 'quickdial.cardScale';
+
+            const PRESET_COLORS = [
+                '#5b9bd5', '#4f8cff', '#3b82f6', '#6366f1', '#8b5cf6',
+                '#a78bfa', '#ec4899', '#f472b6', '#22c55e', '#10b981',
+                '#14b8a6', '#f59e0b', '#f97316', '#ef4444', '#6b7280'
+            ];
+
+            const CARTOON_COLORS = [
+                '#FF9AA2', '#FFB7B2', '#FFDAC1', '#E2F0CB', '#B5EAD7',
+                '#C7CEEA', '#F0C7E4', '#FFE0B2', '#B3E5FC', '#D1C4E9',
+                '#FFCCBC', '#DCEDC8', '#F8BBD0', '#B2EBF2', '#FFECB3',
+                '#FFE5B4', '#FFD1A9', '#FFAAA5', '#A8D8EA', '#D5C6E0'
+            ];
+
+            const ICON_FETCH_TIMEOUT = 3000;
+            const IMG_LOAD_TIMEOUT = 2000;
+
+            const SCALE_MIN = 0.7;
+            const SCALE_MAX = 1.5;
+            const SCALE_STEP = 0.1;
+            const SCALE_DEFAULT = 1;
+
+            let items = [];
+            let editingId = null;
+            let sortableInstance = null;
+            let currentCardColor = '#5b9bd5';
+            let colorPickerOpen = false;
+            let cardScale = SCALE_DEFAULT;
+
+            const grid = document.getElementById('grid');
+            const dlg = document.getElementById('dlg');
+            const fUrl = document.getElementById('fUrl');
+            const fTitle = document.getElementById('fTitle');
+            const fIcon = document.getElementById('fIcon');
+            const themeToggle = document.getElementById('themeToggle');
+            const btnAdd = document.getElementById('btnAdd');
+            const btnExport = document.getElementById('btnExport');
+            const btnImport = document.getElementById('btnImport');
+            const fileImport = document.getElementById('fileImport');
+            const dlgSave = document.getElementById('dlgSave');
+            const dlgCancel = document.getElementById('dlgCancel');
+            const colorTrigger = document.getElementById('colorTrigger');
+            const colorDot = document.getElementById('colorDot');
+            const colorPickerPopup = document.getElementById('colorPickerPopup');
+            const presetColorsContainer = document.getElementById('presetColors');
+            const themeLabel = document.getElementById('themeLabel');
+            const switchContainer = document.getElementById('switchContainer');
+            const btnSizeDown = document.getElementById('btnSizeDown');
+            const btnSizeUp = document.getElementById('btnSizeUp');
+            const btnSizeReset = document.getElementById('btnSizeReset');
+
+            function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
+            function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(items)); } catch (err) { console.warn('保存失败', err); } }
+            function saveScale() { localStorage.setItem(LS_CARD_SCALE, String(cardScale)); }
+            function loadScale() {
+                const saved = parseFloat(localStorage.getItem(LS_CARD_SCALE));
+                return (saved >= SCALE_MIN && saved <= SCALE_MAX) ? saved : SCALE_DEFAULT;
+            }
+            function getHost(url) { try { return new URL(url).host; } catch { return url; } }
+            function defaultTitle(url) { const h = getHost(url); return h.replace(/^www\./, ''); }
+            function guessIcon(url) { try { const u = new URL(url); return `${u.protocol}//${u.host}/favicon.ico`; } catch { return ''; } }
+            function readBlobAsDataUrl(blob) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(reader.error);
+                    reader.readAsDataURL(blob);
+                });
+            }
+            function fetchWithTimeout(url, timeoutMs = ICON_FETCH_TIMEOUT) {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+                return fetch(url, { cache: 'force-cache', referrerPolicy: 'no-referrer', signal: controller.signal })
+                    .finally(() => clearTimeout(timeoutId));
+            }
+            function promiseAny(promises) {
+                const arr = Array.from(promises);
+                if (arr.length === 0) return Promise.reject(new AggregateError([], 'All promises were rejected'));
+                return new Promise((resolve, reject) => {
+                    let remaining = arr.length;
+                    const errors = new Array(arr.length);
+                    arr.forEach((p, i) => {
+                        Promise.resolve(p).then(
+                            val => resolve(val),
+                            err => { errors[i] = err; remaining--; if (remaining === 0) reject(new AggregateError(errors, 'All promises were rejected')); }
+                        );
+                    });
+                });
+            }
+
+            function applyCardScale(scale) {
+                cardScale = Math.max(SCALE_MIN, Math.min(SCALE_MAX, scale));
+                const root = document.documentElement;
+                root.style.setProperty('--card-scale', cardScale);
+                root.style.setProperty('--card-min-width', (160 * cardScale) + 'px');
+                root.style.setProperty('--card-row-height', (120 * cardScale) + 'px');
+                root.style.setProperty('--card-favicon-size', (32 * cardScale) + 'px');
+                root.style.setProperty('--card-title-size', (14 * cardScale) + 'px');
+                root.style.setProperty('--card-host-size', (11 * cardScale) + 'px');
+                root.style.setProperty('--card-gap', (16 * cardScale) + 'px');
+                const padV = Math.round(50 * cardScale);
+                const padH = Math.round(18 * cardScale);
+                const padB = Math.round(80 * cardScale);
+                root.style.setProperty('--grid-padding', `${padV}px ${padH}px ${padB}px`);
+
+                btnSizeDown.disabled = cardScale <= SCALE_MIN;
+                btnSizeUp.disabled = cardScale >= SCALE_MAX;
+                saveScale();
+            }
+
+            /* 卡通头像生成（渲染层回退使用） */
+            function extractInitialChar(item) {
+                const title = (item.title || '').trim();
+                if (title) return title.charAt(0).toUpperCase();
+                const host = getHost(item.url);
+                if (host) return host.charAt(0).toUpperCase();
+                return '?';
+            }
+            function getCartoonColor(char) { const code = char.charCodeAt(0) || 0; return CARTOON_COLORS[code % CARTOON_COLORS.length]; }
+            function generateCartoonAvatar(char, size) {
+                const actualSize = Math.round((size || 64) * cardScale);
+                const canvas = document.createElement('canvas');
+                canvas.width = actualSize; canvas.height = actualSize;
+                const ctx = canvas.getContext('2d');
+                const bgColor = getCartoonColor(char);
+                const radius = Math.round(actualSize * 0.18);
+                ctx.beginPath();
+                ctx.moveTo(radius, 0); ctx.lineTo(actualSize - radius, 0);
+                ctx.arcTo(actualSize, 0, actualSize, radius, radius); ctx.lineTo(actualSize, actualSize - radius);
+                ctx.arcTo(actualSize, actualSize, actualSize - radius, actualSize, radius); ctx.lineTo(radius, actualSize);
+                ctx.arcTo(0, actualSize, 0, actualSize - radius, radius); ctx.lineTo(0, radius);
+                ctx.arcTo(0, 0, radius, 0, radius); ctx.closePath();
+                ctx.fillStyle = bgColor; ctx.fill();
+                ctx.save();
+                ctx.beginPath();
+                ctx.ellipse(actualSize * 0.5, actualSize * 0.22, actualSize * 0.32, actualSize * 0.2, 0, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fill();
+                ctx.restore();
+                ctx.save();
+                ctx.beginPath();
+                ctx.ellipse(actualSize * 0.5, actualSize * 0.78, actualSize * 0.25, actualSize * 0.14, 0, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fill();
+                ctx.restore();
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const fontSize = Math.round(actualSize * 0.55);
+                ctx.font = `bold ${fontSize}px "Arial Rounded MT Bold", "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif`;
+                ctx.fillText(char, actualSize / 2, actualSize / 2);
+                return canvas.toDataURL('image/png');
+            }
+
+            /* ---------- 图标缓存（仅保存真实图标） ---------- */
+            async function fetchIconData(url) {
+                if (!url) return '';
+                const response = await fetchWithTimeout(url, ICON_FETCH_TIMEOUT);
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const blob = await response.blob();
+                if ((blob.type && !blob.type.startsWith('image/')) || blob.size > 150 * 1024) throw new Error('无效图片');
+                return readBlobAsDataUrl(blob);
+            }
+
+            async function cacheIconForItem(item) {
+                if (!item || !item.url) return false;
+                const candidates = [item.icon, guessIcon(item.url)].filter(Boolean);
+                const uniqueCandidates = Array.from(new Set(candidates));
+                if (uniqueCandidates.length === 0) return false;
+                try {
+                    const fetchPromises = uniqueCandidates.map(url => fetchIconData(url).catch(() => { throw new Error('fail'); }));
+                    const iconData = await promiseAny(fetchPromises);
+                    if (iconData) {
+                        item.iconData = iconData;
+                        item.iconCachedFrom = 'fetched';
+                        item.iconCachedAt = Date.now();
+                        return true;
+                    }
+                } catch (e) { /* 全部失败 */ }
+                return false;
+            }
+
+            function shouldRefreshIconCache(item, url, icon) {
+                return !item.iconData || item.url !== url || (item.icon || '') !== icon;
+            }
+
+            async function cacheMissingIcons() {
+                const needCache = items.filter(it => it.url && !it.iconData);
+                for (const item of needCache) {
+                    const success = await cacheIconForItem(item);
+                    if (success) {
+                        save();
+                        render();
+                    }
+                }
+            }
+
+            /* ---------- 颜色 & 主题 ---------- */
+            function hexToRgb(hex) { const clean = hex.replace('#', ''); return { r: parseInt(clean.substring(0,2),16), g: parseInt(clean.substring(2,4),16), b: parseInt(clean.substring(4,6),16) }; }
+            function rgbToHex(r,g,b) { const clamp = v => Math.max(0, Math.min(255, Math.round(v))); return '#' + [clamp(r), clamp(g), clamp(b)].map(v => clamp(v).toString(16).padStart(2,'0')).join(''); }
+            function adjustBrightness(hex, factor) { const {r,g,b} = hexToRgb(hex); return rgbToHex(r+(255-r)*(factor-1), g+(255-g)*(factor-1), b+(255-b)*(factor-1)); }
+            function computeHoverColor(cardColor) { const isLight = document.documentElement.getAttribute('data-theme') === 'light'; return adjustBrightness(cardColor, isLight ? 0.75 : 1.25); }
+            function applyCardColor(color) { document.documentElement.style.setProperty('--card', color); document.documentElement.style.setProperty('--card-hover', computeHoverColor(color)); if(colorDot) colorDot.style.backgroundColor = color; currentCardColor = color; }
+            function loadCardColor() { const saved = localStorage.getItem(LS_CARD_COLOR); return saved && PRESET_COLORS.includes(saved) ? saved : (saved || '#5b9bd5'); }
+            function saveCardColor(color) { localStorage.setItem(LS_CARD_COLOR, color); }
+            function buildPresetColorButtons() {
+                presetColorsContainer.innerHTML = '';
+                PRESET_COLORS.forEach(color => {
+                    const btn = document.createElement('button'); btn.type='button'; btn.className='preset-color-btn'; btn.style.backgroundColor = color; btn.title = color; btn.setAttribute('data-color', color);
+                    if(color === currentCardColor) btn.classList.add('active');
+                    btn.addEventListener('click', e => { e.stopPropagation(); selectCardColor(color); });
+                    presetColorsContainer.appendChild(btn);
+                });
+            }
+            function updatePresetActiveState() { presetColorsContainer.querySelectorAll('.preset-color-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-color') === currentCardColor)); }
+            function selectCardColor(color) { currentCardColor = color; saveCardColor(color); applyCardColor(color); updatePresetActiveState(); closeColorPicker(); }
+            function repositionColorPicker() {
+                if(!colorPickerOpen) return;
+                const trigger = colorTrigger, popup = colorPickerPopup;
+                const triggerRect = trigger.getBoundingClientRect();
+                const vw = window.innerWidth, vh = window.innerHeight, gap = 8;
+                const popupHeight = popup.offsetHeight, popupWidth = popup.offsetWidth;
+                let top, left;
+                const spaceAbove = triggerRect.top, spaceBelow = vh - triggerRect.bottom;
+                if(spaceAbove >= popupHeight + gap) top = triggerRect.top - popupHeight - gap;
+                else if(spaceBelow >= popupHeight + gap) top = triggerRect.bottom + gap;
+                else top = Math.max(gap, vh - popupHeight - gap);
+                left = triggerRect.left + triggerRect.width/2 - popupWidth/2;
+                if(left < gap) left = gap;
+                if(left + popupWidth > vw - gap) left = vw - popupWidth - gap;
+                popup.style.top = top + 'px'; popup.style.left = left + 'px';
+            }
+            function openColorPicker(e) { e.stopPropagation(); e.preventDefault(); buildPresetColorButtons(); updatePresetActiveState(); colorPickerPopup.classList.add('show'); colorPickerOpen = true; repositionColorPicker(); window.addEventListener('resize', repositionColorPicker); }
+            function closeColorPicker() { colorPickerPopup.classList.remove('show'); colorPickerOpen = false; window.removeEventListener('resize', repositionColorPicker); }
+            function toggleColorPicker(e) { colorPickerOpen ? closeColorPicker() : openColorPicker(e); }
+            function applyThemeFromStorage() {
+                const t = localStorage.getItem(LS_THEME) || 'light';
+                document.documentElement.setAttribute('data-theme', t);
+                themeToggle.checked = (t === 'light');
+                if(themeLabel) themeLabel.textContent = t === 'light' ? '浅色模式' : '暗色模式';
+                applyCardColor(currentCardColor);
+                if(colorDot) colorDot.style.backgroundColor = currentCardColor;
+            }
+
+            /* ---------- 渲染（带超时与快速回退） ---------- */
+            function render() {
+                grid.innerHTML = '';
+                if(!items.length) {
+                    grid.innerHTML = '<div class="empty">暂无快捷站点。点击<b>添加快捷站点</b>创建第一个。</div>';
+                    if(sortableInstance) { sortableInstance.destroy(); sortableInstance = null; }
+                    return;
+                }
+                items.forEach(it => grid.appendChild(renderTile(it)));
+                if(sortableInstance) sortableInstance.destroy();
+                initSortable();
+            }
+
+            function renderTile(it) {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.dataset.id = it.id;
+
+                const icoWrap = document.createElement('div');
+                icoWrap.className = 'favicon';
+                const img = document.createElement('img');
+                img.alt = '';
+                img.referrerPolicy = 'no-referrer';
+                img.loading = 'lazy';
+
+                const initialSrc = it.iconData || it.icon || guessIcon(it.url);
+                img.src = initialSrc;
+
+                const fallbackAvatarUrl = generateCartoonAvatar(extractInitialChar(it));
+                let fallbackApplied = false;
+
+                let loadTimeout = setTimeout(() => {
+                    if (!fallbackApplied && img.src !== fallbackAvatarUrl) {
+                        img.src = fallbackAvatarUrl;
+                        fallbackApplied = true;
+                    }
+                }, IMG_LOAD_TIMEOUT);
+
+                img.addEventListener('load', () => {
+                    clearTimeout(loadTimeout);
+                    fallbackApplied = true;
+                }, { once: true });
+
+                img.addEventListener('error', () => {
+                    clearTimeout(loadTimeout);
+                    if (!fallbackApplied && img.src !== fallbackAvatarUrl) {
+                        img.src = fallbackAvatarUrl;
+                        fallbackApplied = true;
+                    }
+                }, { once: true });
+
+                icoWrap.appendChild(img);
+
+                const title = document.createElement('div');
+                title.className = 'title';
+                title.textContent = it.title || defaultTitle(it.url);
+
+                const host = document.createElement('div');
+                host.className = 'host';
+                host.textContent = getHost(it.url);
+
+                const actions = document.createElement('div');
+                actions.className = 'actions';
+                const btnEdit = document.createElement('button'); btnEdit.type='button'; btnEdit.className='iconbtn'; btnEdit.title='编辑'; btnEdit.innerHTML='<span class="icon">✎</span>';
+                btnEdit.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); openEdit(it.id); });
+                const btnDelete = document.createElement('button'); btnDelete.type='button'; btnDelete.className='iconbtn'; btnDelete.title='删除'; btnDelete.innerHTML='<span class="icon">✕</span>';
+                btnDelete.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); remove(it.id); });
+                actions.appendChild(btnEdit); actions.appendChild(btnDelete);
+
+                tile.addEventListener('contextmenu', e => {
+                    e.preventDefault();
+                    document.querySelectorAll('.tile.actions-visible').forEach(t => t.classList.remove('actions-visible'));
+                    tile.classList.add('actions-visible');
+                });
+                tile.addEventListener('click', e => {
+                    if (e.target.closest('.actions')) return;
+                    if (!tile.classList.contains('sortable-ghost') && !tile.classList.contains('sorting')) {
+                        window.location.href = it.url;
+                    }
+                });
+
+                tile.appendChild(icoWrap); tile.appendChild(title); tile.appendChild(host); tile.appendChild(actions);
+                return tile;
+            }
+
+            function initSortable() {
+                if(sortableInstance) sortableInstance.destroy();
+                sortableInstance = Sortable.create(grid, {
+                    ghostClass: 'sortable-ghost',
+                    dragClass: 'sortable-drag',
+                    handle: '.tile',
+                    onSortStart: function(item) {
+                        document.querySelectorAll('.tile.actions-visible').forEach(t => t.classList.remove('actions-visible'));
+                    },
+                    onEnd: () => {
+                        const newOrder = Array.from(grid.querySelectorAll('.tile')).map(t => t.dataset.id);
+                        items = newOrder.map(id => items.find(x => x.id === id)).filter(Boolean);
+                        save();
+                    }
+                });
+            }
+
+            /* ---------- 对话框操作 ---------- */
+            function openAdd() { editingId = null; document.getElementById('dlgTitle').textContent = '添加快捷站点'; fUrl.value = ''; fTitle.value = ''; fIcon.value = ''; dlg.showModal(); setTimeout(() => fUrl.focus(), 100); }
+            function openEdit(id) {
+                editingId = id; const it = items.find(x => x.id === id); if(!it) return;
+                document.getElementById('dlgTitle').textContent = '编辑快捷站点';
+                fUrl.value = it.url; fTitle.value = it.title || ''; fIcon.value = it.icon || '';
+                dlg.showModal(); setTimeout(() => fUrl.focus(), 100);
+            }
+
+            async function upsertFromForm() {
+                const url = fUrl.value.trim();
+                if(!/^https?:\/\//i.test(url)) { alert('请输入有效的 http(s) 网址。'); return false; }
+                const title = fTitle.value.trim(); const icon = fIcon.value.trim();
+                let item;
+                if(editingId) {
+                    const i = items.findIndex(x => x.id === editingId);
+                    if(i >= 0) {
+                        const existing = items[i];
+                        const refreshIcon = shouldRefreshIconCache(existing, url, icon);
+                        item = { ...existing, url, title, icon, iconData: refreshIcon ? '' : existing.iconData, iconCachedFrom: refreshIcon ? '' : existing.iconCachedFrom, iconCachedAt: refreshIcon ? 0 : existing.iconCachedAt };
+                        items[i] = item;
+                    }
+                } else {
+                    item = { id: uid(), url, title, icon, iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() };
+                    items.push(item);
+                }
+                save();
+                render();
+                dlg.close();
+                if(item && item.url && !item.iconData) {
+                    setTimeout(async () => {
+                        const success = await cacheIconForItem(item);
+                        if(success) { save(); render(); }
+                    }, 200);
+                }
+                return true;
+            }
+
+            function remove(id) { if(!confirm('确认删除？')) return; items = items.filter(x => x.id !== id); save(); render(); }
+
+            function exportJson() {
+                const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = 'quick-dial.json'; a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            }
+            function importJson(file) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    try {
+                        const parsed = JSON.parse(reader.result);
+                        if(!Array.isArray(parsed)) throw new Error('格式无效');
+                        const map = new Map(items.map(x => [x.url, x]));
+                        for(const p of parsed) {
+                            if(!p || typeof p !== 'object' || !p.url) continue;
+                            const rec = { id: p.id || uid(), url: String(p.url), title: String(p.title || ''), icon: String(p.icon || ''), iconData: String(p.iconData || ''), iconCachedFrom: String(p.iconCachedFrom || ''), iconCachedAt: Number(p.iconCachedAt || 0), added: Number(p.added || Date.now()) };
+                            map.set(rec.url, rec);
+                        }
+                        items = Array.from(map.values());
+                        save(); render();
+                        cacheMissingIcons();
+                    } catch(err) { alert('导入失败：' + err.message); }
+                };
+                reader.readAsText(file);
+            }
+
+            /* ---------- 初始化 ---------- */
+            (function init() {
+                try { items = JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { items = []; }
+                currentCardColor = loadCardColor();
+                cardScale = loadScale();
+                applyCardScale(cardScale);
+                applyThemeFromStorage();
+                if(colorDot) colorDot.style.backgroundColor = currentCardColor;
+                buildPresetColorButtons();
+                render();
+
+                btnSizeDown.addEventListener('click', () => applyCardScale(cardScale - SCALE_STEP));
+                btnSizeUp.addEventListener('click', () => applyCardScale(cardScale + SCALE_STEP));
+                btnSizeReset.addEventListener('click', () => applyCardScale(SCALE_DEFAULT));
+
+                document.addEventListener('click', e => {
+                    document.querySelectorAll('.tile.actions-visible').forEach(t => t.classList.remove('actions-visible'));
+                    if(colorPickerOpen && !switchContainer.contains(e.target)) closeColorPicker();
+                });
+                colorTrigger.addEventListener('click', e => toggleColorPicker(e));
+                colorPickerPopup.addEventListener('click', e => e.stopPropagation());
+                dlgSave.addEventListener('click', async () => {
+                    dlgSave.disabled = true; const oldText = dlgSave.textContent; dlgSave.textContent = '保存中...';
+                    try { await upsertFromForm(); } catch { alert('保存失败'); }
+                    finally { dlgSave.disabled = false; dlgSave.textContent = oldText; }
+                });
+                dlgCancel.addEventListener('click', () => dlg.close());
+                btnAdd.addEventListener('click', openAdd);
+                btnExport.addEventListener('click', exportJson);
+                btnImport.addEventListener('click', () => fileImport.click());
+                fileImport.addEventListener('change', () => { const f = fileImport.files?.[0]; if(f) importJson(f); fileImport.value = ''; });
+                themeToggle.addEventListener('change', () => {
+                    const theme = themeToggle.checked ? 'light' : 'dark';
+                    localStorage.setItem(LS_THEME, theme); applyThemeFromStorage();
+                    if(colorDot) colorDot.style.backgroundColor = currentCardColor;
+                    buildPresetColorButtons(); updatePresetActiveState();
+                });
+                window.addEventListener('keydown', e => {
+                    if(e.key.toLowerCase() === 'n' && !dlg.open) openAdd();
+                    if(e.key === 'Escape' && colorPickerOpen) closeColorPicker();
+                });
+
+                dlg.addEventListener('close', () => { dlgSave.disabled = false; dlgSave.textContent = '保存'; });
+
+                if (!items.length && !localStorage.getItem('quickdial.seeded')) {
+                    items = [
+                        { id: uid(), url: 'https://www.bing.com', title: 'Bing', icon: '', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
+                        { id: uid(), url: 'https://github.com/', title: 'Github', icon: 'https://github.com/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
+                        { id: uid(), url: 'https://xuc.xi-xu.me/zh-hans.html', title: 'Xget转换器', icon: 'https://xuc.xi-xu.me/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
+                        { id: uid(), url: 'https://gitee.com/', title: 'Gitee', icon: 'https://gitee.com/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
+                        { id: uid(), url: 'https://wangpanmao.com/', title: '网盘猫', icon: 'https://wangpanmao.com/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
+                        { id: uid(), url: 'https://dash.cloudflare.com/2a56f1ee49b50d9b10a53e877c42d0dd/home', title: 'Cloudflare', icon: 'https://www.cloudflare.com/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
+                        { id: uid(), url: 'https://cs2-a40.pages.dev/', title: 'CS2实验室', icon: 'https://cs2-a40.pages.dev/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
+                        { id: uid(), url: 'https://vet-7tn.pages.dev/', title: '测试站', icon: 'https://vet-7tn.pages.dev/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
+                        { id: uid(), url: 'https://convertio.co/zh/download/18f1731a54cbde64262c1e7a958789bcfa32cd/', title: '图标转ico', icon: 'https://convertio.co/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
+                        { id: uid(), url: 'https://my-website01-aty.pages.dev/', title: '资源分享站', icon: 'https://my-website01-aty.pages.dev/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
+{ id: uid(), url: 'https://dash-349.pages.dev/', title: 'Dashboard', icon: 'https://dash-349.pages.dev/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
+                    ];
+                    localStorage.setItem('quickdial.seeded', '1');
+                    save();
+                    render();
+                }
+            
+                cacheMissingIcons();
+            })();
+        })();
+    </script>
+</body>
+</html>
