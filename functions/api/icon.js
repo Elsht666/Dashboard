@@ -43,7 +43,13 @@ export async function onRequestGet({ request }) {
 
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const html = await res.text();
-    return json({ icon: extractIcon(html, target) }, 200, corsHeaders);
+    let icon = extractIcon(html, target);
+    if (!icon) {
+      // 通用解析失败：部分站点（如 platform.deepseek.com）对数据中心 IP
+      // 返回不含 <link rel="icon"> 的简化页面 → 查已知站点图标映射表兜底
+      icon = knownIconFor(target);
+    }
+    return json({ icon }, 200, corsHeaders);
   } catch (e) {
     return json({ icon: '', error: 'fetch failed' }, 200, corsHeaders);
   }
@@ -92,6 +98,26 @@ function extractIcon(html, pageUrl) {
   if (/^data:/i.test(href)) return href;                       // data URI 直接返回
   try {
     return new URL(href, pageUrl).href;                        // 相对路径补全为绝对地址
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * 已知站点图标映射表（兜底方案）。
+ * 部分站点对服务器/数据中心 IP 返回不含 <link rel="icon"> 的简化页面，
+ * 通用解析拿不到图标；这些站点的真实图标地址在此登记，按 hostname 匹配。
+ */
+const KNOWN_ICONS = {
+  'platform.deepseek.com': 'https://fe-static.deepseek.com/platform/favicon.svg',
+};
+
+/** 按目标网址 hostname 查询已知站点图标，未登记返回空字符串 */
+function knownIconFor(target) {
+  if (!target) return '';
+  try {
+    const host = new URL(target).hostname.toLowerCase();
+    return KNOWN_ICONS[host] || '';
   } catch {
     return '';
   }
