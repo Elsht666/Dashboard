@@ -443,6 +443,121 @@
                 transform: none;
             }
         }
+
+        /* ==================== 恢复出厂确认弹窗 ==================== */
+        .confirm-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: rgba(0, 0, 0, .45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .confirm-overlay.show { display: flex; }
+
+        .confirm-box {
+            background: var(--bg);
+            border-radius: 22px;
+            padding: 32px 26px 24px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 24px 70px rgba(0, 0, 0, .35);
+            border: 1px solid rgba(127, 127, 127, .15);
+            animation: confirmPop .28s cubic-bezier(.175, .885, .32, 1.275);
+        }
+        [data-theme="light"] .confirm-box {
+            background: #fff;
+            box-shadow: 0 24px 70px rgba(0, 0, 0, .15);
+            border: 1px solid rgba(0, 0, 0, .06);
+        }
+        @keyframes confirmPop {
+            from { transform: translateY(24px) scale(.94); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        .confirm-icon {
+            width: 58px;
+            height: 58px;
+            margin: 0 auto 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #fef3c7, #fde68a);   /* 浅米黄，感叹号反差最大 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 27px;
+            box-shadow: 0 8px 24px rgba(245, 158, 11, .35);
+        }
+
+        .confirm-title {
+            font-size: 19px;
+            font-weight: 700;
+            text-align: center;
+            margin: 0 0 10px;
+            color: var(--fg);
+        }
+
+        .confirm-desc {
+            font-size: 13px;
+            color: var(--muted);
+            text-align: center;
+            line-height: 1.7;
+            margin: 0;
+            padding: 0 4px;
+        }
+
+        .confirm-desc b { color: var(--fg); font-weight: 600; }
+
+        .confirm-btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 22px;
+        }
+
+        .confirm-btn {
+            flex: 1;
+            padding: 12px 0;
+            border: 0;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all .2s;
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .confirm-btn:active { transform: scale(0.96); }
+        .confirm-btn.cancel {
+            background: rgba(127, 127, 127, .12);
+            color: var(--muted);
+        }
+        .confirm-btn.cancel:hover {
+            background: rgba(127, 127, 127, .22);
+            color: var(--fg);
+        }
+        [data-theme="light"] .confirm-btn.cancel { background: rgba(0, 0, 0, .05); }
+        [data-theme="light"] .confirm-btn.cancel:hover { background: rgba(0, 0, 0, .1); }
+        .confirm-btn.danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            box-shadow: 0 6px 20px rgba(239, 68, 68, .35);
+        }
+        .confirm-btn.danger:hover {
+            filter: brightness(1.08);
+            box-shadow: 0 8px 26px rgba(239, 68, 68, .45);
+        }
+
+        @media (max-width: 600px) {
+            .confirm-box { padding: 28px 22px 22px; border-radius: 20px; }
+            .confirm-icon { width: 52px; height: 52px; font-size: 24px; }
+            .confirm-title { font-size: 18px; }
+        }
     </style>
 </head>
 <body>
@@ -450,6 +565,7 @@
         <h1>快捷导航</h1>
         <div class="spacer"></div>
         <div class="toolbar">
+            <button class="btn" id="btnResetDefaults" title="恢复为HTML源码内置的默认站点列表，无视缓存标记">恢复出厂</button>
             <div class="size-controls" title="调节卡片大小">
                 <button class="size-btn" id="btnSizeDown" title="缩小卡片">A−</button>
                 <button class="size-btn" id="btnSizeReset" title="重置大小" style="font-size:13px;">A</button>
@@ -487,6 +603,19 @@
             <button class="btn primary" id="dlgSave" type="button">保存</button>
         </div>
     </dialog>
+
+    <!-- 恢复出厂确认弹窗 -->
+    <div class="confirm-overlay" id="confirmOverlay">
+        <div class="confirm-box">
+            <div class="confirm-icon">⚠️</div>
+            <h2 class="confirm-title">恢复出厂设置</h2>
+            <p class="confirm-desc">将清除当前所有快捷站点，<br>恢复为 HTML 源码内置的最新<b>默认站点列表</b>。<br>此操作<b>不可撤销</b>，确定继续吗？</p>
+            <div class="confirm-btns">
+                <button class="confirm-btn cancel" id="confirmCancelBtn">取消</button>
+                <button class="confirm-btn danger" id="confirmOkBtn">确认恢复</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         /* Sortable Lite - 移动端优化：滚动/点击/长按拖拽三态分离 */
@@ -883,6 +1012,12 @@
 
             const ICON_FETCH_TIMEOUT = 3000;
             const IMG_LOAD_TIMEOUT = 2000;
+            /* 图标自动发现接口地址（可选）：
+               部署 functions/api/icon.js（Cloudflare Pages Function）后，
+               接口为 https://<项目名>.pages.dev/api/icon，可自动解析网站
+               <link rel="icon"> 显示 CDN 托管的真实图标（如 DeepSeek 平台的黑鲸）。
+               留空则跳过该功能。 */
+            const ICON_FINDER_API = 'https://dash-349.pages.dev/api/icon';
 
             const SCALE_MIN = 0.7;
             const SCALE_MAX = 1.5;
@@ -917,6 +1052,7 @@
             const btnSizeDown = document.getElementById('btnSizeDown');
             const btnSizeUp = document.getElementById('btnSizeUp');
             const btnSizeReset = document.getElementById('btnSizeReset');
+            const btnResetDefaults = document.getElementById('btnResetDefaults');
 
             function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
             function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(items)); } catch (err) { console.warn('保存失败', err); } }
@@ -1029,21 +1165,48 @@
                 return readBlobAsDataUrl(blob);
             }
 
+            /* 通过 Cloudflare Worker 自动发现网站真实图标（解析 <link rel="icon">）
+               返回图标完整 URL；未配置 Worker 或失败时返回空字符串 */
+            async function discoverIconViaWorker(url) {
+                if (!ICON_FINDER_API || !url) return '';
+                const sep = ICON_FINDER_API.includes('?') ? '&' : '?';
+                try {
+                    const res = await fetchWithTimeout(ICON_FINDER_API + sep + 'url=' + encodeURIComponent(url), 8000);
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    const data = await res.json();
+                    return (data && typeof data.icon === 'string' && data.icon) ? data.icon : '';
+                } catch { return ''; }
+            }
+
             async function cacheIconForItem(item) {
                 if (!item || !item.url) return false;
-                const candidates = [item.icon, guessIcon(item.url)].filter(Boolean);
-                const uniqueCandidates = Array.from(new Set(candidates));
-                if (uniqueCandidates.length === 0) return false;
+                const candidates = [item.icon, guessIcon(item.url)];
                 try {
-                    const fetchPromises = uniqueCandidates.map(url => fetchIconData(url).catch(() => { throw new Error('fail'); }));
-                    const iconData = await promiseAny(fetchPromises);
-                    if (iconData) {
-                        item.iconData = iconData;
-                        item.iconCachedFrom = 'fetched';
-                        item.iconCachedAt = Date.now();
-                        return true;
+                    const u = new URL(item.url);
+                    candidates.push(`${u.protocol}//${u.host}/favicon.png`, `${u.protocol}//${u.host}/apple-touch-icon.png`);
+                } catch {}
+                const uniqueCandidates = Array.from(new Set(candidates.filter(Boolean)));
+                let iconData = '';
+                if (uniqueCandidates.length) {
+                    try {
+                        const fetchPromises = uniqueCandidates.map(url => fetchIconData(url).catch(() => { throw new Error('fail'); }));
+                        iconData = await promiseAny(fetchPromises);
+                    } catch { /* 全部失败 */ }
+                }
+                // 本地候选全部失败 → 通过 Worker 自动发现真实图标
+                if (!iconData) {
+                    const discovered = await discoverIconViaWorker(item.url);
+                    if (discovered) {
+                        item.icon = discovered;   // 持久化真实图标地址，后续渲染直接用
+                        try { iconData = await fetchIconData(discovered); } catch { iconData = ''; }
                     }
-                } catch (e) { /* 全部失败 */ }
+                }
+                if (iconData) {
+                    item.iconData = iconData;
+                    item.iconCachedFrom = 'fetched';
+                    item.iconCachedAt = Date.now();
+                    return true;
+                }
                 return false;
             }
 
@@ -1054,8 +1217,10 @@
             async function cacheMissingIcons() {
                 const needCache = items.filter(it => it.url && !it.iconData);
                 for (const item of needCache) {
+                    const beforeIcon = item.icon || '';
                     const success = await cacheIconForItem(item);
-                    if (success) {
+                    // 成功缓存图标，或通过 Worker 发现了真实图标地址 → 都需保存并重渲染
+                    if (success || item.icon !== beforeIcon) {
                         save();
                         render();
                     }
@@ -1134,31 +1299,70 @@
                 img.referrerPolicy = 'no-referrer';
                 img.loading = 'lazy';
 
-                const initialSrc = it.iconData || it.icon || guessIcon(it.url);
-                img.src = initialSrc;
+                /* 图标候选源依次尝试，直到加载成功：
+                   缓存图 → 手动填写的图标 → 猜 /favicon.ico → /favicon.png → /apple-touch-icon.png → 头像回退 */
+                const iconCandidates = [];
+                if (it.iconData) iconCandidates.push(it.iconData);
+                if (it.icon) iconCandidates.push(it.icon);
+                const guessed = guessIcon(it.url);
+                if (guessed) iconCandidates.push(guessed);
+                try {
+                    const u = new URL(it.url);
+                    iconCandidates.push(`${u.protocol}//${u.host}/favicon.png`, `${u.protocol}//${u.host}/apple-touch-icon.png`);
+                } catch {}
+                const uniqueCandidates = Array.from(new Set(iconCandidates.filter(Boolean)));
 
                 const fallbackAvatarUrl = generateCartoonAvatar(extractInitialChar(it));
                 let fallbackApplied = false;
+                let candidateIndex = 0;
+                let loadTimeout = null;
+                let workerSearched = false;
 
-                let loadTimeout = setTimeout(() => {
-                    if (!fallbackApplied && img.src !== fallbackAvatarUrl) {
-                        img.src = fallbackAvatarUrl;
+                function armLoadTimeout() {
+                    if (loadTimeout) clearTimeout(loadTimeout);
+                    loadTimeout = setTimeout(() => {
+                        if (!fallbackApplied) tryNextIconSource();
+                    }, IMG_LOAD_TIMEOUT);
+                }
+
+                function tryNextIconSource() {
+                    if (candidateIndex < uniqueCandidates.length) {
+                        img.src = uniqueCandidates[candidateIndex++];
+                        armLoadTimeout();
+                    } else if (!fallbackApplied && !workerSearched) {
+                        // 本地候选全部失败 → 通过 Worker 自动发现真实图标
+                        workerSearched = true;
+                        discoverIconViaWorker(it.url).then(realIcon => {
+                            if (realIcon && !fallbackApplied && !uniqueCandidates.includes(realIcon)) {
+                                uniqueCandidates.push(realIcon);
+                                tryNextIconSource();
+                            } else if (!fallbackApplied) {
+                                fallbackApplied = true;
+                                img.src = fallbackAvatarUrl;
+                            }
+                        }).catch(() => {
+                            if (!fallbackApplied) {
+                                fallbackApplied = true;
+                                img.src = fallbackAvatarUrl;
+                            }
+                        });
+                    } else if (!fallbackApplied) {
                         fallbackApplied = true;
+                        img.src = fallbackAvatarUrl;
                     }
-                }, IMG_LOAD_TIMEOUT);
+                }
 
                 img.addEventListener('load', () => {
-                    clearTimeout(loadTimeout);
+                    if (loadTimeout) clearTimeout(loadTimeout);
                     fallbackApplied = true;
                 }, { once: true });
 
                 img.addEventListener('error', () => {
-                    clearTimeout(loadTimeout);
-                    if (!fallbackApplied && img.src !== fallbackAvatarUrl) {
-                        img.src = fallbackAvatarUrl;
-                        fallbackApplied = true;
-                    }
-                }, { once: true });
+                    if (loadTimeout) clearTimeout(loadTimeout);
+                    if (!fallbackApplied) tryNextIconSource();
+                });
+
+                tryNextIconSource();
 
                 icoWrap.appendChild(img);
 
@@ -1221,7 +1425,9 @@
             }
 
             async function upsertFromForm() {
-                const url = fUrl.value.trim();
+                let url = fUrl.value.trim();
+                // 省略协议头时自动补全 https://
+                if(url && !/^https?:\/\//i.test(url)) { url = 'https://' + url; fUrl.value = url; }
                 if(!/^https?:\/\//i.test(url)) { alert('请输入有效的 http(s) 网址。'); return false; }
                 const title = fTitle.value.trim(); const icon = fIcon.value.trim();
                 let item;
@@ -1279,7 +1485,62 @@
 
             /* ---------- 初始化 ---------- */
             (function init() {
-                try { items = JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { items = []; }
+                /* ---------- 默认站点列表（HTML源码内置，修改此处并保存后：
+                   file:// 本地打开每次加载强制读取最新内容；线上可通过"恢复出厂"按钮强制读取） ---------- */
+                const DEFAULT_ITEMS = [
+		{
+  url: 'https://platform.deepseek.com/usage',
+  title: 'Deepseek-api',
+  icon: ''
+},
+
+                    { url: 'https://www.bing.com', title: 'Bing', icon: '' },
+                    { url: 'https://github.com/', title: 'Github', icon: 'https://github.com/favicon.ico' },
+                    { url: 'https://xuc.xi-xu.me/zh-hans.html', title: 'Xget转换器', icon: 'https://xuc.xi-xu.me/favicon.ico' },
+                    { url: 'https://gitee.com/', title: 'Gitee', icon: 'https://gitee.com/favicon.ico' },
+                    { url: 'https://wangpanmao.com/', title: '网盘猫', icon: 'https://wangpanmao.com/favicon.ico' },
+                    { url: 'https://dash.cloudflare.com/2a56f1ee49b50d9b10a53e877c42d0dd/home', title: 'Cloudflare', icon: 'https://www.cloudflare.com/favicon.ico' },
+                    { url: 'https://cs2-a40.pages.dev/', title: 'CS2实验室', icon: 'https://cs2-a40.pages.dev/favicon.ico' },
+                    { url: 'https://vet-7tn.pages.dev/', title: '测试站', icon: 'https://vet-7tn.pages.dev/favicon.ico' },
+                    { url: 'https://convertio.co/zh/download/18f1731a54cbde64262c1e7a958789bcfa32cd/', title: '图标转ico', icon: 'https://convertio.co/favicon.ico' },
+                    { url: 'https://my-website01-aty.pages.dev/', title: '资源分享站', icon: 'https://my-website01-aty.pages.dev/favicon.ico' },
+                    { url: 'https://dash-349.pages.dev/', title: 'Dashboard', icon: 'https://dash-349.pages.dev/favicon.ico' },
+                ];
+
+                function createDefaultItems() {
+                    return DEFAULT_ITEMS.map(d => ({
+                        id: uid(),
+                        url: d.url,
+                        title: d.title || defaultTitle(d.url),
+                        icon: d.icon || '',
+                        iconData: '', iconCachedFrom: '', iconCachedAt: 0,
+                        added: Date.now()
+                    }));
+                }
+
+                /* 恢复出厂：强制读取 HTML 源码最新默认站点列表，无视缓存标记 */
+                function resetToDefaults() {
+                    items = createDefaultItems();
+                    localStorage.removeItem('quickdial.seeded');
+                    save();
+                    render();
+                    cacheMissingIcons();
+                }
+
+                /* file:// 本地协议打开：每次加载强制读取 HTML 源码最新默认站点，无视旧缓存标记；
+                   线上（http/https）：优先读取 LocalStorage 缓存 */
+                if (typeof location !== 'undefined' && location.protocol === 'file:') {
+                    items = createDefaultItems();
+                    localStorage.removeItem('quickdial.seeded');
+                    save();
+                } else {
+                    try { items = JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { items = []; }
+                    if (!items.length && !localStorage.getItem('quickdial.seeded')) {
+                        items = createDefaultItems();
+                        localStorage.setItem('quickdial.seeded', '1');
+                        save();
+                    }
+                }
                 currentCardColor = loadCardColor();
                 cardScale = loadScale();
                 applyCardScale(cardScale);
@@ -1321,25 +1582,27 @@
 
                 dlg.addEventListener('close', () => { dlgSave.disabled = false; dlgSave.textContent = '保存'; });
 
-                if (!items.length && !localStorage.getItem('quickdial.seeded')) {
-                    items = [
-                        { id: uid(), url: 'https://www.bing.com', title: 'Bing', icon: '', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
-                        { id: uid(), url: 'https://github.com/', title: 'Github', icon: 'https://github.com/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
-                        { id: uid(), url: 'https://xuc.xi-xu.me/zh-hans.html', title: 'Xget转换器', icon: 'https://xuc.xi-xu.me/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
-                        { id: uid(), url: 'https://gitee.com/', title: 'Gitee', icon: 'https://gitee.com/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
-                        { id: uid(), url: 'https://wangpanmao.com/', title: '网盘猫', icon: 'https://wangpanmao.com/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
-                        { id: uid(), url: 'https://dash.cloudflare.com/2a56f1ee49b50d9b10a53e877c42d0dd/home', title: 'Cloudflare', icon: 'https://www.cloudflare.com/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
-                        { id: uid(), url: 'https://cs2-a40.pages.dev/', title: 'CS2实验室', icon: 'https://cs2-a40.pages.dev/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
-                        { id: uid(), url: 'https://vet-7tn.pages.dev/', title: '测试站', icon: 'https://vet-7tn.pages.dev/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
-                        { id: uid(), url: 'https://convertio.co/zh/download/18f1731a54cbde64262c1e7a958789bcfa32cd/', title: '图标转ico', icon: 'https://convertio.co/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
-                        { id: uid(), url: 'https://my-website01-aty.pages.dev/', title: '资源分享站', icon: 'https://my-website01-aty.pages.dev/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
-{ id: uid(), url: 'https://dash-349.pages.dev/', title: 'Dashboard', icon: 'https://dash-349.pages.dev/favicon.ico', iconData: '', iconCachedFrom: '', iconCachedAt: 0, added: Date.now() },
-                    ];
-                    localStorage.setItem('quickdial.seeded', '1');
-                    save();
-                    render();
-                }
-            
+                /* 恢复出厂确认弹窗 */
+                const confirmOverlay = document.getElementById('confirmOverlay');
+                const confirmOkBtn = document.getElementById('confirmOkBtn');
+                const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+
+                function openResetConfirm() { confirmOverlay.classList.add('show'); confirmOkBtn.focus(); }
+                function closeResetConfirm() { confirmOverlay.classList.remove('show'); }
+
+                btnResetDefaults.addEventListener('click', openResetConfirm);
+                confirmOkBtn.addEventListener('click', () => {
+                    closeResetConfirm();
+                    resetToDefaults();
+                });
+                confirmCancelBtn.addEventListener('click', closeResetConfirm);
+                confirmOverlay.addEventListener('click', e => {
+                    if (e.target === confirmOverlay) closeResetConfirm();
+                });
+                window.addEventListener('keydown', e => {
+                    if (e.key === 'Escape' && confirmOverlay.classList.contains('show')) closeResetConfirm();
+                });
+
                 cacheMissingIcons();
             })();
         })();
