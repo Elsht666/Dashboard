@@ -1607,6 +1607,35 @@
 
                 dlg.addEventListener('close', () => { dlgSave.disabled = false; dlgSave.textContent = '保存'; });
 
+                /* 网址输入完成后自动获取 favicon 并回填图标网址（复用 Worker 图标接口，弹窗 UI 不变） */
+                let autoFillLastUrl = '';   /* 上次已查询网址，避免重复请求 */
+                let autoFillApplied = '';   /* 上次自动填入的图标值，允许被新结果覆盖 */
+                let autoFillSeq = 0;        /* 竞态防护：仅应用最新一次请求的结果 */
+
+                function autoFillIcon() {
+                    let raw = fUrl.value.trim().replace(/\s+/g, '');
+                    if(!raw) return;
+                    if(!/^https?:\/\//i.test(raw)) raw = 'https://' + raw;  /* 裸域名自动补协议 */
+                    let u;
+                    try { u = new URL(raw); } catch { return; }
+                    if(u.href === autoFillLastUrl) return;
+                    autoFillLastUrl = u.href;
+
+                    /* 用户已手动填写图标地址时不覆盖；为空或等于上次自动填入值时才回填 */
+                    const cur = fIcon.value.trim();
+                    if(cur && cur !== autoFillApplied) return;
+
+                    const seq = ++autoFillSeq;
+                    discoverIconViaWorker(u.href).then(icon => {
+                        if(seq !== autoFillSeq || !icon) return;
+                        autoFillApplied = icon;
+                        fIcon.value = icon;
+                    });
+                }
+
+                fUrl.addEventListener('change', autoFillIcon);  /* 失焦且值有变化时触发 */
+                fUrl.addEventListener('keydown', e => { if(e.key === 'Enter') { e.preventDefault(); autoFillIcon(); } });
+
                 /* 恢复出厂确认弹窗 */
                 const confirmOverlay = document.getElementById('confirmOverlay');
                 const confirmOkBtn = document.getElementById('confirmOkBtn');
