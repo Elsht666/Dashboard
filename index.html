@@ -571,6 +571,14 @@
             .confirm-box { padding: 28px 22px 22px; border-radius: 20px; }
             .confirm-icon { width: 52px; height: 52px; font-size: 24px; }
             .confirm-title { font-size: 18px; }
+
+            /* 手机端：导出/导入按钮同行并排，空间不足时自动换行 */
+            .btn-export-import {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .btn-export-import .btn { flex: 1 1 auto; white-space: nowrap; }
         }
     </style>
 </head>
@@ -597,8 +605,10 @@
                     <div class="preset-colors" id="presetColors"></div>
                 </div>
             </label>
-            <button class="btn" id="btnExport" title="导出为JSON备份">导出备份</button>
-            <button class="btn" id="btnImport" title="从JSON恢复">导入恢复</button>
+            <div class="btn-export-import">
+                <button class="btn" id="btnExport" title="导出为JSON备份">导出备份</button>
+                <button class="btn" id="btnImport" title="从JSON恢复">导入恢复</button>
+            </div>
             <input id="fileImport" type="file" accept="application/json" hidden />
         </div>
     </header>
