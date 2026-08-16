@@ -459,59 +459,202 @@
             }
         }
 
+        /* ==================== 添加站点弹窗：浅色化（对齐图标工具弹窗风格） ==================== */
+        #dlg {
+            width: min(640px, 94vw);
+            border-radius: 20px;
+            color: #0f172a;
+            background:
+                radial-gradient(480px 320px at 100% 0%, rgba(79, 110, 247, .14), transparent 60%),
+                radial-gradient(420px 300px at 0% 100%, rgba(129, 140, 248, .12), transparent 60%),
+                #f4f6fb;
+            box-shadow: 0 24px 64px -16px rgba(15, 23, 42, .4);
+        }
+        #dlg .dlg-head { padding: 18px 22px; border-bottom: 1px solid #e2e8f0; }
+        #dlgTitle {
+            font-size: 17px;
+            background: linear-gradient(120deg, #0f172a 30%, #3b5bdb);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        /* 返回上一级：靛蓝渐变实底，与图标工具弹窗同款 */
+        #dlgBack {
+            background: linear-gradient(135deg, #5b7cfa, #3b5bdb);
+            color: #fff;
+            border: 0;
+            box-shadow: 0 6px 16px -6px rgba(59, 91, 219, .55);
+        }
+        #dlgBack:hover { filter: brightness(1.08); transform: translateY(-1px); }
+        #dlgBack:active { transform: scale(.97); }
+        #dlg .dlg-body { padding: 22px; gap: 14px; }
+        #dlg label { color: #64748b; }
+        #dlg input[type="text"],
+        #dlg input[type="url"] {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            color: #0f172a;
+        }
+        #dlg input::placeholder { color: #a8b3c5; }
+        #dlg input:focus {
+            outline: none;
+            border-color: #4f6ef7;
+            box-shadow: 0 0 0 4px rgba(79, 110, 247, .14);
+        }
+        #dlg .dlg-foot { padding: 16px 22px 20px; border-top: 1px solid #e2e8f0; }
+        #dlgCancel {
+            background: #fff;
+            color: #0f172a;
+            border: 1px solid #e2e8f0;
+        }
+        #dlgCancel:hover { filter: brightness(.96); }
+        #dlgSave {
+            background: linear-gradient(135deg, #5b7cfa, #3b5bdb);
+            color: #fff;
+            border: 0;
+            box-shadow: 0 6px 16px -6px rgba(59, 91, 219, .55);
+        }
+        #dlgSave:hover { filter: brightness(1.08); }
+
         /* ==================== 图标地址提取工具弹层 ==================== */
-        #iconToolDlg { width: min(560px, 94vw); }
+        /* 入口按钮：白字灰黑底，与浅色弹窗背景形成强对比 */
+        #btnIconTool {
+            background: #1e293b;
+            color: #fff;
+            border: 1.5px solid #0f172a;
+            box-shadow: 0 3px 10px -2px rgba(15, 23, 42, .45);
+        }
+        #btnIconTool:hover { filter: brightness(1.2); transform: translateY(-1px); }
+
+        /* 工具弹窗：放大尺寸 + 浅色背景（对齐 test-website-demo 风格） */
+        #iconToolDlg {
+            width: min(680px, 94vw);
+            border-radius: 20px;
+            color: #0f172a;
+            background:
+                radial-gradient(480px 320px at 100% 0%, rgba(79, 110, 247, .14), transparent 60%),
+                radial-gradient(420px 300px at 0% 100%, rgba(129, 140, 248, .12), transparent 60%),
+                #f4f6fb;
+            box-shadow: 0 24px 64px -16px rgba(15, 23, 42, .4);
+        }
+        #iconToolDlg::backdrop { background: rgba(0, 0, 0, .5); }
+
         .it-head {
-            padding: 14px 18px;
+            padding: 18px 22px;
             display: flex;
             align-items: center;
-            gap: 12px;
-            border-bottom: 1px solid rgba(255, 255, 255, .2);
+            gap: 14px;
+            border-bottom: 1px solid #e2e8f0;
         }
-        .it-title { font-size: 15px; }
-        .it-body { padding: 18px; display: grid; gap: 12px; }
+        /* 返回按钮：靛蓝渐变实底，浅色背景上一眼可辨 */
+        #itBack {
+            background: linear-gradient(135deg, #5b7cfa, #3b5bdb);
+            color: #fff;
+            border: 0;
+            box-shadow: 0 6px 16px -6px rgba(59, 91, 219, .55);
+        }
+        #itBack:hover { filter: brightness(1.08); transform: translateY(-1px); }
+        #itBack:active { transform: scale(.97); }
+        .it-title {
+            font-size: 17px;
+            background: linear-gradient(120deg, #0f172a 30%, #3b5bdb);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .it-body { padding: 22px; display: grid; gap: 14px; }
         .it-input-row { display: flex; gap: 10px; flex-wrap: wrap; }
-        .it-input-row input { flex: 1 1 220px; width: auto; min-width: 0; }
-        .it-error {
-            padding: 10px 12px;
-            font-size: 13px;
-            line-height: 1.5;
-            border-radius: 10px;
-            background: rgba(239, 68, 68, .18);
-            border: 1px solid rgba(239, 68, 68, .45);
-            color: #ffd9d6;
+        .it-input-row input {
+            flex: 1 1 220px;
+            width: auto;
+            min-width: 0;
+            height: 46px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            color: #0f172a;
+            border-radius: 12px;
         }
-        .it-result { display: grid; gap: 12px; }
-        .it-result-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        #iconToolDlg input::placeholder { color: #a8b3c5; }
+        #iconToolDlg input:focus {
+            outline: none;
+            border-color: #4f6ef7;
+            box-shadow: 0 0 0 4px rgba(79, 110, 247, .14);
+        }
+        /* 提取按钮：靛蓝渐变主按钮 */
+        #itExtract {
+            height: 46px;
+            padding: 0 24px;
+            border: 0;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #5b7cfa, #3b5bdb);
+            color: #fff;
+            box-shadow: 0 6px 16px -6px rgba(59, 91, 219, .55);
+        }
+        #itExtract:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
+
+        .it-error {
+            padding: 12px 14px;
+            font-size: 13px;
+            line-height: 1.55;
+            border-radius: 12px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+        }
+
+        /* 结果区：白色卡片 + 深色代码块（对齐 test-website-demo） */
+        .it-result {
+            display: grid;
+            gap: 14px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 12px 32px -12px rgba(15, 23, 42, .18);
+        }
+        .it-result-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .it-result-head img {
-            width: 48px;
-            height: 48px;
+            width: 56px;
+            height: 56px;
             flex: none;
             object-fit: contain;
-            border-radius: 10px;
-            padding: 3px;
-            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 4px;
+            /* 棋盘底衬托透明图标 */
+            background: repeating-conic-gradient(#f1f5f9 0 25%, #fff 0 50%) 0 0 / 12px 12px;
         }
         .it-url {
             flex: 1 1 240px;
             min-width: 0;
             font-family: ui-monospace, SFMono-Regular, Consolas, "Courier New", monospace;
             font-size: 12.5px;
-            line-height: 1.5;
+            line-height: 1.6;
             word-break: break-all;
-            padding: 10px 12px;
+            padding: 12px 14px;
             border-radius: 10px;
-            background: rgba(0, 0, 0, .25);
-            border: 1px solid rgba(255, 255, 255, .2);
-            color: #fff;
+            background: #0f172a;
+            color: #cbd5e1;
+            box-shadow: inset 0 1px 4px rgba(0, 0, 0, .4);
         }
         .it-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .it-actions a { font-size: 13px; color: #fff; text-decoration: none; }
-        .it-actions a:hover { text-decoration: underline; }
-        #itSource { font-size: 12px; color: rgba(255, 255, 255, .65); }
+        /* 复制按钮：白底深边框（对齐 test-website-demo 强化样式） */
+        #itCopy {
+            background: #fff;
+            color: #0f172a;
+            border: 1.5px solid #1e293b;
+            box-shadow: 0 3px 10px -2px rgba(15, 23, 42, .45);
+        }
+        #itCopy:hover { filter: brightness(.96); transform: translateY(-1px); }
+        .it-actions a { font-size: 13px; font-weight: 600; color: #3b5bdb; text-decoration: none; }
+        .it-actions a:hover { text-decoration: underline; text-underline-offset: 3px; }
+        #itSource { font-size: 12px; color: #94a3b8; }
         .it-hidden { display: none !important; }
         @media (max-width: 480px) {
+            .it-body { padding: 16px; }
             .it-input-row .btn { flex: 1 1 100%; }
+            .it-title { font-size: 15px; }
         }
 
         /* ==================== 恢复出厂确认弹窗 ==================== */
@@ -673,7 +816,11 @@
     <button class="btn primary fab" id="btnAdd">＋ 添加快捷站点</button>
 
     <dialog id="dlg">
-        <div class="dlg-head"><strong id="dlgTitle">添加快捷站点</strong><div class="spacer"></div></div>
+        <div class="dlg-head">
+            <button class="btn" id="dlgBack" type="button">← 返回上一级</button>
+            <strong id="dlgTitle">添加快捷站点</strong>
+            <div class="spacer"></div>
+        </div>
         <div class="dlg-body">
             <div class="row"><label for="fUrl">网址</label><input id="fUrl" type="url" placeholder="https://example.com" required /></div>
             <div class="row"><label for="fTitle">标题（可选）</label><input id="fTitle" type="text" placeholder="显示在卡片上" /></div>
@@ -1675,6 +1822,7 @@
                     finally { dlgSave.disabled = false; dlgSave.textContent = oldText; }
                 });
                 dlgCancel.addEventListener('click', () => dlg.close());
+                document.getElementById('dlgBack').addEventListener('click', () => dlg.close());
                 btnAdd.addEventListener('click', openAdd);
                 btnExport.addEventListener('click', exportJson);
                 btnImport.addEventListener('click', () => fileImport.click());
