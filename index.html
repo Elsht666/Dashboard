@@ -428,6 +428,7 @@
             display: flex;
             gap: 10px;
             justify-content: flex-end;
+            flex-wrap: wrap;
             border-top: 1px solid rgba(255, 255, 255, .2);
         }
 
@@ -456,6 +457,61 @@
             .tile:hover {
                 transform: none;
             }
+        }
+
+        /* ==================== 图标地址提取工具弹层 ==================== */
+        #iconToolDlg { width: min(560px, 94vw); }
+        .it-head {
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, .2);
+        }
+        .it-title { font-size: 15px; }
+        .it-body { padding: 18px; display: grid; gap: 12px; }
+        .it-input-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .it-input-row input { flex: 1 1 220px; width: auto; min-width: 0; }
+        .it-error {
+            padding: 10px 12px;
+            font-size: 13px;
+            line-height: 1.5;
+            border-radius: 10px;
+            background: rgba(239, 68, 68, .18);
+            border: 1px solid rgba(239, 68, 68, .45);
+            color: #ffd9d6;
+        }
+        .it-result { display: grid; gap: 12px; }
+        .it-result-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .it-result-head img {
+            width: 48px;
+            height: 48px;
+            flex: none;
+            object-fit: contain;
+            border-radius: 10px;
+            padding: 3px;
+            background: #fff;
+        }
+        .it-url {
+            flex: 1 1 240px;
+            min-width: 0;
+            font-family: ui-monospace, SFMono-Regular, Consolas, "Courier New", monospace;
+            font-size: 12.5px;
+            line-height: 1.5;
+            word-break: break-all;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, .25);
+            border: 1px solid rgba(255, 255, 255, .2);
+            color: #fff;
+        }
+        .it-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .it-actions a { font-size: 13px; color: #fff; text-decoration: none; }
+        .it-actions a:hover { text-decoration: underline; }
+        #itSource { font-size: 12px; color: rgba(255, 255, 255, .65); }
+        .it-hidden { display: none !important; }
+        @media (max-width: 480px) {
+            .it-input-row .btn { flex: 1 1 100%; }
         }
 
         /* ==================== 恢复出厂确认弹窗 ==================== */
@@ -624,8 +680,37 @@
             <div class="row"><label for="fIcon">图标网址（可选）</label><input id="fIcon" type="url" placeholder="https://site.com/favicon.ico" /></div>
         </div>
         <div class="dlg-foot">
+            <button class="btn" id="btnIconTool" type="button">网站图标地址提取工具</button>
+            <div class="spacer"></div>
             <button class="btn" id="dlgCancel" type="button">取消</button>
             <button class="btn primary" id="dlgSave" type="button">保存</button>
+        </div>
+    </dialog>
+
+    <!-- 网站图标地址提取工具 弹层（复用现有 Worker 图标接口，无新增后端） -->
+    <dialog id="iconToolDlg">
+        <div class="it-head">
+            <button class="btn" id="itBack" type="button">← 返回上一级</button>
+            <strong class="it-title">网站图标地址提取工具</strong>
+        </div>
+        <div class="it-body">
+            <div class="it-input-row">
+                <input id="itUrl" type="text" spellcheck="false" autocomplete="off"
+                       placeholder="粘贴网站地址，如 https://www.github.com 或 platform.deepseek.com">
+                <button class="btn primary" id="itExtract" type="button">提取</button>
+            </div>
+            <div class="it-error it-hidden" id="itError"></div>
+            <div class="it-result it-hidden" id="itResult">
+                <div class="it-result-head">
+                    <img id="itPreview" alt="图标预览">
+                    <div class="it-url" id="itUrlOut"></div>
+                </div>
+                <div class="it-actions">
+                    <button class="btn" id="itCopy" type="button">📋 复制地址</button>
+                    <a id="itVisit" href="#" target="_blank" rel="noopener">在新标签页打开 ↗</a>
+                    <span id="itSource"></span>
+                </div>
+            </div>
         </div>
     </dialog>
 
@@ -1635,6 +1720,135 @@
 
                 fUrl.addEventListener('change', autoFillIcon);  /* 失焦且值有变化时触发 */
                 fUrl.addEventListener('keydown', e => { if(e.key === 'Enter') { e.preventDefault(); autoFillIcon(); } });
+
+                /* ==================== 图标地址提取工具弹层（复用现有 Worker 图标接口） ==================== */
+                const iconToolDlg = document.getElementById('iconToolDlg');
+                const itUrl = document.getElementById('itUrl');
+                const itError = document.getElementById('itError');
+                const itResult = document.getElementById('itResult');
+                const itPreview = document.getElementById('itPreview');
+                const itUrlOut = document.getElementById('itUrlOut');
+                const itCopy = document.getElementById('itCopy');
+                const itVisit = document.getElementById('itVisit');
+                const itSource = document.getElementById('itSource');
+                const itExtractBtn = document.getElementById('itExtract');
+                const itBack = document.getElementById('itBack');
+                const itPlaceholder = 'data:image/svg+xml,' + encodeURIComponent(
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48">' +
+                    '<rect width="48" height="48" rx="10" fill="#eee"/>' +
+                    '<text x="24" y="30" text-anchor="middle" font-size="20" fill="#bbb">?</text></svg>');
+                let itSeq = 0;
+
+                document.getElementById('btnIconTool').addEventListener('click', () => {
+                    itError.classList.add('it-hidden');
+                    itResult.classList.add('it-hidden');
+                    iconToolDlg.showModal();
+                    setTimeout(() => itUrl.focus(), 100);
+                });
+                itBack.addEventListener('click', () => iconToolDlg.close());
+
+                function itShowError(msg) { itError.textContent = msg; itError.classList.remove('it-hidden'); }
+                function itShowResult(url, source) {
+                    itPreview.onerror = () => { itPreview.src = itPlaceholder; };
+                    itPreview.src = url;
+                    itUrlOut.textContent = url;
+                    itVisit.href = url;
+                    itSource.textContent = source ? '来源：' + source : '';
+                    itError.classList.add('it-hidden');
+                    itResult.classList.remove('it-hidden');
+                }
+
+                /* 浏览器直探站点原生图标路径（<img> 不受 CORS 限制），完整域名+主域名 */
+                function itRootDomain(h) {
+                    let m = h.toLowerCase().match(/([a-z0-9-]+\.(?:com|net|org|gov|edu|ac|co)\.[a-z]{2})$/);
+                    if(m) return m[1];
+                    m = h.toLowerCase().match(/([a-z0-9-]+\.[a-z]{2,})$/);
+                    return m ? m[1] : h;
+                }
+                function itProbeImg(url) {
+                    return new Promise(resolve => {
+                        const img = new Image();
+                        let done = false;
+                        const finish = ok => { if(done) return; done = true; resolve(ok); };
+                        const t = setTimeout(() => finish(false), 6000);
+                        img.onload = () => { clearTimeout(t); finish(true); };
+                        img.onerror = () => { clearTimeout(t); finish(false); };
+                        img.src = url;
+                    });
+                }
+                function itBrowserProbe(u) {
+                    const origins = [u.origin];
+                    const rd = itRootDomain(u.hostname);
+                    if(rd !== u.hostname) origins.push('https://' + rd);
+                    const paths = ['/favicon.ico', '/favicon.png', '/apple-touch-icon.png'];
+                    const candidates = [];
+                    origins.forEach(o => paths.forEach(p => candidates.push(o + p)));
+                    return Promise.all(candidates.map(itProbeImg)).then(results => {
+                        for(let i = 0; i < candidates.length; i++) if(results[i]) return candidates[i];
+                        return '';
+                    });
+                }
+                function itCopyText(text) {
+                    if(navigator.clipboard && navigator.clipboard.writeText) {
+                        return navigator.clipboard.writeText(text).then(() => true, () => itLegacyCopy(text));
+                    }
+                    return Promise.resolve(itLegacyCopy(text));
+                }
+                function itLegacyCopy(text) {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    let ok = false;
+                    try { ok = document.execCommand('copy'); } catch(e) {}
+                    ta.remove();
+                    return ok;
+                }
+
+                function itDoExtract() {
+                    itError.classList.add('it-hidden');
+                    itResult.classList.add('it-hidden');
+                    let raw = itUrl.value.trim().replace(/\s+/g, '');
+                    if(!raw) { itShowError('请输入网址'); return; }
+                    if(!/^https?:\/\//i.test(raw)) raw = 'https://' + raw;  /* 裸域名自动补协议 */
+                    let u;
+                    try { u = new URL(raw); } catch(e) { itShowError('网址格式不正确，请检查后重试'); return; }
+
+                    const seq = ++itSeq;
+                    itExtractBtn.disabled = true;
+                    itExtractBtn.textContent = '提取中…';
+
+                    /* 第一层：复用现有 Worker 图标接口，解析页面原生图标地址 */
+                    discoverIconViaWorker(u.href).then(icon => {
+                        if(seq !== itSeq) return null;
+                        if(icon) { itShowResult(icon, '页面解析'); return null; }
+                        /* 第二层：浏览器直探站点原生路径 */
+                        return itBrowserProbe(u).then(native => {
+                            if(seq !== itSeq) return;
+                            if(native) { itShowResult(native, '本地探测 ' + native.replace(/^https?:\/\//, '')); return; }
+                            itShowError('未找到图标，请检查网址是否正确');
+                        });
+                    }).catch(() => {
+                        if(seq !== itSeq) return;
+                        itShowError('提取失败，请稍后重试');
+                    }).then(() => {
+                        if(seq !== itSeq) return;
+                        itExtractBtn.disabled = false;
+                        itExtractBtn.textContent = '提取';
+                    });
+                }
+
+                itExtractBtn.addEventListener('click', itDoExtract);
+                itUrl.addEventListener('keydown', e => { if(e.key === 'Enter') itDoExtract(); });
+                itCopy.addEventListener('click', () => {
+                    itCopyText(itUrlOut.textContent).then(ok => {
+                        if(!ok) { itShowError('复制失败，请手动选中文本复制'); return; }
+                        itCopy.textContent = '已复制 ✓';
+                        setTimeout(() => { itCopy.textContent = '📋 复制地址'; }, 1500);
+                    });
+                });
 
                 /* 恢复出厂确认弹窗 */
                 const confirmOverlay = document.getElementById('confirmOverlay');
