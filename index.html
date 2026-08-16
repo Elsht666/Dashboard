@@ -1636,5 +1636,32 @@
             })();
         })();
     </script>
+    <script>
+        /* ==================== 网页防护 ==================== */
+        (function() {
+            'use strict';
+            /* 拦截快捷键：F12、Ctrl+S、Ctrl+U、Ctrl+Shift+I/J/C 等 */
+            document.addEventListener('keydown', function(e) {
+                var key = e.key || '';
+                var blocked = false;
+                if (key === 'F12') { blocked = true; }
+                else if ((e.ctrlKey || e.metaKey) && !e.altKey && (key === 's' || key === 'S' || key === 'u' || key === 'U')) { blocked = true; }
+                else if ((e.ctrlKey || e.metaKey) && e.shiftKey && (key === 'I' || key === 'i' || key === 'J' || key === 'j' || key === 'C' || key === 'c')) { blocked = true; }
+                if (blocked) { e.preventDefault(); e.stopPropagation(); return false; }
+            }, true);
+            /* 屏蔽右键菜单 */
+            document.addEventListener('contextmenu', function(e) { e.preventDefault(); }, true);
+            /* 反调试：debugger 检测循环（打开控制台时触发中断） */
+            function antiDebug() {
+                setInterval(function() {
+                    var before = Date.now();
+                    /* eslint-disable no-debugger */
+                    debugger;
+                    if (Date.now() - before > 100) { document.body.innerHTML = ''; }
+                }, 2000);
+            }
+            antiDebug();
+        })();
+    </script>
 </body>
 </html>
